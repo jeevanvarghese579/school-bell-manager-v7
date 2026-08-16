@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --c-background: #0f172a;
+  --c-surface: #1e293b;
+  --c-surfaceSecondary: #273449;
+  --c-border: #334155;
+  --c-textPrimary: #f1f5f9;
+  --c-textSecondary: #94a3b8;
+  --c-primary: #818cf8;
+  --c-primaryHover: #a5b4fc;
+  --c-danger: #f87171;
+  --c-success: #4ade80;
+  --c-disabled: #475569;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--c-background);
+  color: var(--c-textPrimary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-textSecondary);
+}
+
+.w-4\.5 { width: 1.125rem; }
+.h-4\.5 { height: 1.125rem; }
