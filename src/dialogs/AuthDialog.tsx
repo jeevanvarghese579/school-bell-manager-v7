@@ -11,12 +11,11 @@ interface Props {
 }
 
 export function AuthDialog({ open, onClose }: Props) {
-  const { signIn, signUp, resetPassword, continueOffline, cloudConfigured } = useAuth();
+  const { signIn, resetPassword, continueOffline, cloudConfigured } = useAuth();
   const { push } = useToast();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [mode, setMode] = useState<'signin' | 'reset'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -25,10 +24,6 @@ export function AuthDialog({ open, onClose }: Props) {
       if (mode === 'signin') {
         await signIn(email, password);
         push('Signed in', 'success');
-        onClose();
-      } else if (mode === 'signup') {
-        await signUp(email, password);
-        push('Account created. You are signed in.', 'success');
         onClose();
       } else {
         await resetPassword(email);
@@ -51,7 +46,6 @@ export function AuthDialog({ open, onClose }: Props) {
         </div>
         <p className="text-sm text-[var(--c-textSecondary)] text-center">
           {mode === 'signin' && 'Sign in to sync your bell schedules across devices.'}
-          {mode === 'signup' && 'Create an account to sync your bell schedules.'}
           {mode === 'reset' && 'Enter your email to receive a reset link.'}
         </p>
       </div>
@@ -80,22 +74,17 @@ export function AuthDialog({ open, onClose }: Props) {
             className="w-full px-3 py-2 rounded-lg bg-[var(--c-surfaceSecondary)] border border-[var(--c-border)] text-sm text-[var(--c-textPrimary)] focus:outline-none focus:border-[var(--c-primary)]"
           />
         )}
-        {mode === 'signup' && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[var(--c-surfaceSecondary)] border border-[var(--c-border)] text-sm text-[var(--c-textPrimary)] focus:outline-none focus:border-[var(--c-primary)]" />}
       </div>
 
       <div className="flex flex-col gap-2 mt-4">
-        <Button variant="primary" onClick={submit} disabled={busy || !/^\S+@\S+\.\S+$/.test(email) || (mode !== 'reset' && (!password || (mode === 'signup' && (password.length < 6 || password !== confirmPassword))))}>
-          {busy ? 'Please wait...' : mode === 'signin' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'}
+        <Button variant="primary" onClick={submit} disabled={busy || !/^\S+@\S+\.\S+$/.test(email) || (mode === 'signin' && !password)}>
+          {busy ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Send Reset Link'}
         </Button>
 
-        <div className="flex justify-between text-xs text-[var(--c-textSecondary)]">
+        <div className="flex justify-end text-xs text-[var(--c-textSecondary)]">
           {mode === 'signin' && (
-            <>
-              <button onClick={() => setMode('signup')} className="hover:text-[var(--c-primary)]">Create Account</button>
-              <button onClick={() => setMode('reset')} className="hover:text-[var(--c-primary)]">Forgot Password?</button>
-            </>
+            <button onClick={() => setMode('reset')} className="hover:text-[var(--c-primary)]">Forgot Password?</button>
           )}
-          {mode === 'signup' && <button onClick={() => setMode('signin')} className="hover:text-[var(--c-primary)]">Back to Sign In</button>}
           {mode === 'reset' && <button onClick={() => setMode('signin')} className="hover:text-[var(--c-primary)]">Back to Sign In</button>}
         </div>
       </div>

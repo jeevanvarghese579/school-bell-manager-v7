@@ -3,9 +3,7 @@ import type { DataProvider } from '@/services/DataProvider';
 import { offlineProvider } from '@/services/OfflineProvider';
 import { cloudProvider } from '@/services/CloudProvider';
 import { firebaseAuth, isFirebaseConfigured } from '@/firebase/firebase';
-import { createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { firestore } from '@/firebase/firebase';
+import { onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { idb } from '@/storage/indexeddb';
 import { DEFAULT_SETTINGS } from '@/models/types';
 
@@ -21,7 +19,6 @@ interface AuthContextValue {
   provider: DataProvider;
   cloudConfigured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   continueOffline: () => void;
@@ -54,12 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    if (!firebaseAuth) throw new Error('Firebase is not configured.');
-    const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-    if (firestore) await setDoc(doc(firestore, 'users', credential.user.uid), { email: credential.user.email, createdAt: serverTimestamp() }, { merge: true });
-  }, []);
-
   const resetPassword = useCallback(async (email: string) => {
     if (!firebaseAuth) throw new Error('Firebase is not configured.');
     await sendPasswordResetEmail(firebaseAuth, email);
@@ -83,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ state, mode, provider, cloudConfigured, signIn, signUp, resetPassword, signOut, continueOffline, switchToCloud }}
+      value={{ state, mode, provider, cloudConfigured, signIn, resetPassword, signOut, continueOffline, switchToCloud }}
     >
       {children}
     </AuthContext.Provider>
