@@ -21,7 +21,6 @@ interface SchedulerInput {
 export function useAlarmScheduler({ profiles, bells, settings, sounds, getUrl }: SchedulerInput) {
   const firedRef = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastTickRef = useRef<string>('');
 
   // Keep refs to latest data so the interval closure always sees fresh values
   const dataRef = useRef({ profiles, bells, settings, sounds, getUrl });
@@ -48,6 +47,25 @@ export function useAlarmScheduler({ profiles, bells, settings, sounds, getUrl }:
     log('Sent schedule to Electron:', schedulableBells.length, 'bells, master:', settings.masterAlarmsEnabled);
   }, [profiles, bells, settings]);
 
+  // Electron's main process owns the clock because renderer timers can be
+  // throttled while the window is hidden. When it reports a due bell, resolve
+  // and play that bell's configured sound in the renderer.
+  useEffect(() => {
+    if (!isElectron()) return;
+    const electron = getElectron();
+    if (!electron) return;
+
+    return electron.onBellFired((bellId) => {
+      const { bells, sounds, getUrl } = dataRef.current;
+      const bell = bells.find((item) => item.id === bellId);
+      if (!bell) {
+        console.warn('[Scheduler] Electron fired an unknown bell:', bellId);
+        return;
+      }
+      void fireBell(bell, sounds, getUrl, audioRef);
+    });
+  }, []);
+
   useEffect(() => {
     if (!settings) return;
 
@@ -61,10 +79,6 @@ export function useAlarmScheduler({ profiles, bells, settings, sounds, getUrl }:
       const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       const today = todayDateString();
       const dayOfWeek = now.getDay();
-
-      // Only process when the minute changes
-      if (hhmm === lastTickRef.current) return;
-      lastTickRef.current = hhmm;
 
       const enabledProfileIds = new Set(profiles.filter((p) => p.enabled).map((p) => p.id));
 
@@ -82,21 +96,17 @@ export function useAlarmScheduler({ profiles, bells, settings, sounds, getUrl }:
         firedRef.current.add(key);
         log('Alarm became due:', b.name, 'at', hhmm);
 
-        // In Electron, let main process handle playback
-        if (isElectron()) {
-          log('Electron mode — main process handles playback');
-          return;
-        }
-
         void fireBell(b, sounds, getUrl, audioRef);
       }
     };
 
-    // Run immediately, then every 5 seconds (we only act on minute change)
+    // Electron uses its main-process scheduler. Browsers poll once per second;
+    // per-bell fired keys prevent duplicates throughout the due minute.
+    if (isElectron()) return;
     tick();
-    const interval = setInterval(tick, 5000);
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [settings?.masterAlarmsEnabled]);
+  }, [settings]);
 
   // Cleanup old fired keys at midnight boundary
   useEffect(() => {

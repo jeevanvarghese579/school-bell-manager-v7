@@ -3,6 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const AutoLaunch = require('auto-launch');
 
+// Bells are unattended playback by design. Allow scheduled audio without a
+// recent click, including when the application is hidden in the system tray.
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 let mainWindow = null;
 let tray = null;
 let autoLauncher = null;
@@ -50,6 +54,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false,
     },
   });
 
@@ -220,8 +225,14 @@ function tickBells() {
 
     console.log(`[Electron Scheduler] Alarm became due: ${b.name} at ${hhmm}`);
 
-    // Play sound
-    playBellSound(b.soundId || '__default_bell__');
+    // The renderer owns sound resolution (IndexedDB/Firestore and the bundled
+    // default sound). Tell it exactly which bell became due so it can play the
+    // configured sound even while the window is hidden in the tray.
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('bell-fired', b.id);
+    } else {
+      console.warn('[Electron Scheduler] Cannot play bell because the renderer is unavailable:', b.id);
+    }
 
     // Show notification
     if (Notification.isSupported()) {
@@ -297,6 +308,9 @@ ipcMain.on('schedule-bells', (e, data) => {
   schedule = { bells: data.bells, masterEnabled: data.masterEnabled };
   updateTray();
   console.log('[Electron] Schedule updated:', data.bells.length, 'bells, master:', data.masterEnabled);
+  // A schedule can arrive after the minute started (for example just after
+  // startup). Evaluate it immediately instead of waiting for the next poll.
+  tickBells();
 });
 
 // Cache sound file from renderer (base64 data)
@@ -342,9 +356,10 @@ app.whenReady().then(() => {
     autoLauncher.enable().catch(() => {});
   }
 
-  // Start bell scheduler — check every 15 seconds, act on minute change
+  // Check every second so an HH:mm alarm rings close to second zero rather
+  // than as much as 15 seconds late.
   lastFiredDate = getLocalDateStr();
-  setInterval(tickBells, 15000);
+  setInterval(tickBells, 1000);
   tickBells(); // immediate check
 
   // Recalculate after sleep/wake

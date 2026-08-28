@@ -13,7 +13,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onTrayOpen: (cb) => ipcRenderer.on('tray-open', () => cb()),
   scheduleBells: (bells, settings) =>
     ipcRenderer.send('schedule-bells', { bells, masterEnabled: settings.masterAlarmsEnabled }),
-  onBellFired: (cb) => ipcRenderer.on('bell-fired', (e, bellId) => cb(bellId)),
+  onBellFired: (cb) => {
+    const listener = (e, bellId) => cb(bellId);
+    ipcRenderer.on('bell-fired', listener);
+    return () => ipcRenderer.removeListener('bell-fired', listener);
+  },
   // Sound caching for Electron main process playback
   cacheSound: (soundId, base64Data, ext) =>
     ipcRenderer.invoke('cache-sound', { soundId, base64Data, ext }),

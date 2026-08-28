@@ -16,7 +16,7 @@ interface ElectronAPI {
   onToggleMaster: (cb: (enabled: boolean) => void) => void;
   onTrayOpen: (cb: () => void) => void;
   scheduleBells: (bells: SchedulableBell[], settings: AppSettings) => void;
-  onBellFired: (cb: (bellId: string) => void) => void;
+  onBellFired: (cb: (bellId: string) => void) => () => void;
   cacheSound: (soundId: string, base64Data: string, ext: string) => Promise<boolean>;
   onPlaySoundFile: (cb: (filePath: string) => void) => void;
 }

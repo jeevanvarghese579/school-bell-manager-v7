@@ -1,59 +1,43 @@
 # Dependencies
 node_modules/
 
-# Build outputs
+# Generated web and desktop application output
 dist/
 dist-ssr/
-release/
 out/
+release/
+releases/
 windows releases/
 widnows releases/
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Environment
-.env
-.env.local
-*.local
-
-# Editors
-.vscode/*
-!.vscode/extensions.json
-.idea/
-
-# OS / misc
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-dist-ssr/
-release/
-out/
-windows releases/
+# Packaged installers and Electron build by-products
+*.exe
+*.msi
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.dmg
+*.pkg
+*.AppImage
+*.deb
+*.rpm
+*.blockmap
+*.asar
+builder-debug.yml
+builder-effective-config.yaml
+latest*.yml
+win-unpacked/
 
 # Firebase local cache
 .firebase/
 
-# Temporary/generated files
-objects.txt
-$null
+# Environment files (keep the safe template)
+.env
+.env.*
+!.env.example
 
-# Logs
+# Logs and temporary/generated files
 logs/
 *.log
 npm-debug.log*
@@ -61,18 +45,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+objects.txt
+allobjects.txt
+$null
 
-# Environment - NEVER commit real secrets
-.env
-.env.local
-*.local
-
-# Editors
+# Editor and operating-system files
 .vscode/*
 !.vscode/extensions.json
 .idea/
-
-# OS / misc
 .DS_Store
 *.suo
 *.ntvs*

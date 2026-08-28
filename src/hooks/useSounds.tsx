@@ -91,7 +91,9 @@ export function SoundsProvider({ children }: { children: ReactNode }) {
 
   const getUrl = useCallback(
     async (id: string): Promise<string | null> => {
-      if (id === DEFAULT_BELL_SOUND_ID) return '/sounds/default-bell.wav';
+      // Keep this relative to dist/index.html so it works for both Vite's web
+      // server and Electron's file:// packaged renderer.
+      if (id === DEFAULT_BELL_SOUND_ID) return './sounds/default-bell.wav';
       try {
         return await provider.getSoundUrl(id);
       } catch {
