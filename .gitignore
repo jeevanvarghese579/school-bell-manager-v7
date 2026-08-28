@@ -22,6 +22,7 @@ widnows releases/
 *.AppImage
 *.deb
 *.rpm
+*.zip
 *.blockmap
 *.asar
 builder-debug.yml

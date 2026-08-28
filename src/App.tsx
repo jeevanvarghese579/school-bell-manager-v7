@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/Button';
 function Shell() {
   const { state, provider } = useAuth();
   const { push } = useToast();
-  const { settings, update } = useSettings();
+  const { settings, update, refresh: refreshSettings } = useSettings();
   useTheme(settings);
 
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
@@ -38,6 +38,18 @@ function Shell() {
   const bumpData = useCallback(() => setDataVersion((v) => v + 1), []);
 
   const soundsHook = useSounds();
+  const refreshSounds = soundsHook.refresh;
+
+  useEffect(() => {
+    const refreshCloudData = () => {
+      if (state.status !== 'cloud') return;
+      void refreshSettings();
+      void refreshSounds();
+      bumpData();
+    };
+    window.addEventListener('online', refreshCloudData);
+    return () => window.removeEventListener('online', refreshCloudData);
+  }, [state.status, refreshSettings, refreshSounds, bumpData]);
 
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {

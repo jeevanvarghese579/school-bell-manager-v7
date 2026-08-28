@@ -1,6 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // Vite replaces these at build time. Keeping the values in this module (rather
@@ -19,5 +19,12 @@ const config = {
 export const isFirebaseConfigured = () => Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
 const app = isFirebaseConfigured() ? (getApps().length ? getApp() : initializeApp(config)) : null;
 export const firebaseAuth = app ? getAuth(app) : null;
-export const firestore = app ? getFirestore(app) : null;
+// Persist authenticated cloud data in IndexedDB. Firestore reads this cache
+// after an offline restart and automatically synchronizes queued changes when
+// connectivity returns. Multi-tab management also covers the web build safely.
+export const firestore = app
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+  : null;
 export const storage = app ? getStorage(app) : null;
