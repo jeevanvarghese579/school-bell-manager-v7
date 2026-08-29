@@ -14,7 +14,7 @@ export interface DataProvider {
   getBells(profileId: string): Promise<Bell[]>;
   createBell(profileId: string, data: Partial<Bell>): Promise<Bell>;
   updateBell(id: string, patch: Partial<Bell>): Promise<void>;
-  deleteBell(id: string): Promise<void>;
+  deleteBell(id: string, profileId?: string): Promise<void>;
 
   // sounds
   getSounds(): Promise<BellSound[]>;

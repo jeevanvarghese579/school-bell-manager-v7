@@ -44,7 +44,20 @@ export class CloudProvider implements DataProvider {
     return bellFrom(profileId, created.id, { ...bell, createdAt, updatedAt: createdAt });
   }
   async updateBell(id: string, patch: Partial<Bell>) { const profiles = await this.getProfiles(); for (const p of profiles) { const target = doc(this.profiles(), p.id, 'bells', id); if ((await getDoc(target)).exists()) { await updateDoc(target, { ...pick(patch, ['name', 'time', 'repeatDays', 'soundId', 'enabled', 'sortOrder']), updatedAt: serverTimestamp() }); return; } } throw new Error('Bell not found.'); }
-  async deleteBell(id: string) { const profiles = await this.getProfiles(); for (const p of profiles) { const target = doc(this.profiles(), p.id, 'bells', id); if ((await getDoc(target)).exists()) { await deleteDoc(target); return; } } }
+  async deleteBell(id: string, profileId?: string) {
+    if (profileId) {
+      await deleteDoc(doc(this.profiles(), profileId, 'bells', id));
+      return;
+    }
+    const profiles = await this.getProfiles();
+    for (const p of profiles) {
+      const target = doc(this.profiles(), p.id, 'bells', id);
+      if ((await getDoc(target)).exists()) {
+        await deleteDoc(target);
+        return;
+      }
+    }
+  }
   async getSounds() { const q = query(this.sounds(), orderBy('createdAt')); const rows = offline() ? await getDocsFromCache(q) : await getDocs(q); return rows.docs.map(x => soundFrom(x.id, x.data())); }
   async addSound(name: string, file: File) { const uid = userId(); const sound = doc(this.sounds()); const path = `users/${uid}/sounds/${sound.id}/${file.name}`; await uploadBytes(ref(storage!, path), file, { contentType: file.type || 'audio/mpeg' }); await setDoc(sound, { name, storagePath: path, mimeType: file.type || 'audio/mpeg', size: file.size, createdAt: serverTimestamp() }); await idb.putSoundBlob(sound.id, file); const d = await getDoc(sound); return soundFrom(sound.id, d.data()); }
   async updateSound(id: string, name: string) { await updateDoc(doc(this.sounds(), id), { name }); }

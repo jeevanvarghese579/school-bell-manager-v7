@@ -126,19 +126,19 @@ export function BellList({ profileId, profileName, profileEnabled, onChange }: P
       <BellDialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onSave={async (data) => { await create(data); setAddOpen(false); onChange(); }}
+        onSave={async (data) => { await create(data); setAddOpen(false); }}
       />
       <BellDialog
         open={!!editTarget}
         initial={editTarget}
         onClose={() => setEditTarget(null)}
-        onSave={async (data) => { if (editTarget) await update(editTarget.id, data); setEditTarget(null); onChange(); }}
+        onSave={async (data) => { if (editTarget) await update(editTarget.id, data); setEditTarget(null); }}
       />
       <ConfirmDialog
         open={!!deleteTarget}
         title={`Delete "${deleteTarget?.name ?? ''}"?`}
         message="This alarm will be permanently removed."
-        onConfirm={() => { if (deleteTarget) remove(deleteTarget.id); setDeleteTarget(null); onChange(); }}
+        onConfirm={async () => { if (deleteTarget) await remove(deleteTarget.id); setDeleteTarget(null); }}
         onCancel={() => setDeleteTarget(null)}
       />
       {!profileEnabled && <div className="absolute inset-0 z-20 flex items-center justify-center bg-[var(--c-background)]/85 backdrop-blur-[1px] p-6"><div className="max-w-sm text-center"><h2 className="text-xl font-bold">Profile Is Turned Off</h2><p className="mt-2 text-sm text-[var(--c-textSecondary)]">Turn on this profile to view or edit its bells. Bells in this profile will not ring while it is turned off.</p><Button variant="primary" className="mt-5 px-6 py-3" onClick={() => window.dispatchEvent(new CustomEvent('sbm-enable-profile', { detail: profileId }))}>Turn On Profile</Button></div></div>}

@@ -167,7 +167,7 @@ export function ProfileList({ selectedId, onSelect, bellCounts, onChange, onProf
         initialName={editTarget?.name}
         title="Rename Profile"
         onClose={() => setEditTarget(null)}
-        onSave={async (name) => { if (editTarget) await update(editTarget.id, { name }); setEditTarget(null); onChange(); }}
+        onSave={async (name) => { if (editTarget) await update(editTarget.id, { name }); setEditTarget(null); }}
       />
       <ConfirmDialog
         open={!!deleteTarget}

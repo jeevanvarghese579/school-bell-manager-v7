@@ -71,20 +71,17 @@ export function useBells(profileId: string | null, onChange?: () => void) {
     async (id: string) => {
       const previous = bells;
       setBells((items) => items.filter((bell) => bell.id !== id));
-      setLoading(true);
       try {
-        await provider.deleteBell(id);
+        await provider.deleteBell(id, profileId ?? undefined);
         push('Alarm deleted', 'success');
         onChange?.();
       } catch (error) {
         setBells(previous);
         if (import.meta.env.DEV) console.error('[Firestore] delete bell failed', (error as { code?: string }).code, (error as Error).message);
         push('Unable to delete alarm', 'error');
-      } finally {
-        setLoading(false);
       }
     },
-    [provider, bells, push, onChange],
+    [provider, profileId, bells, push, onChange],
   );
 
   return { bells, loading, refresh, create, update, remove };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BellProfile } from '@/models/types';
 import { useAuth } from './useAuth';
 import { useToast } from './useToast';
@@ -8,14 +8,18 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
   const { push } = useToast();
   const [profiles, setProfiles] = useState<BellProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoaded = useRef(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    // Only replace the list with the loading placeholder on the initial load.
+    // Later reconciliations should keep the current profiles visible.
+    if (!hasLoaded.current) setLoading(true);
     try {
       setProfiles(await provider.getProfiles());
-    } catch (e) {
+    } catch {
       push('Unable to load profiles', 'error');
     } finally {
+      hasLoaded.current = true;
       setLoading(false);
     }
   }, [provider, push]);
@@ -26,7 +30,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
 
   const create = useCallback(
     async (name: string) => {
-      setLoading(true);
       try {
         const created = await provider.createProfile(name);
         setProfiles((items) => [...items, created].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt - b.createdAt));
@@ -37,8 +40,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
         if (import.meta.env.DEV) console.error('[Firestore] create profile failed', (error as { code?: string }).code, (error as Error).message);
         push('Unable to create profile', 'error');
         return null;
-      } finally {
-        setLoading(false);
       }
     },
     [provider, push, onChange],
@@ -48,7 +49,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
     async (id: string, patch: Partial<BellProfile>) => {
       const previous = profiles;
       setProfiles((items) => items.map((profile) => profile.id === id ? { ...profile, ...patch, updatedAt: Date.now() } : profile));
-      setLoading(true);
       try {
         await provider.updateProfile(id, patch);
         onChange?.();
@@ -56,8 +56,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
         setProfiles(previous);
         if (import.meta.env.DEV) console.error('[Firestore] update profile failed', (error as { code?: string }).code, (error as Error).message);
         push('Unable to update profile', 'error');
-      } finally {
-        setLoading(false);
       }
     },
     [provider, profiles, push, onChange],
@@ -65,7 +63,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
 
   const remove = useCallback(
     async (id: string) => {
-      setLoading(true);
       try {
         await provider.deleteProfile(id);
         setProfiles((items) => items.filter((profile) => profile.id !== id));
@@ -74,8 +71,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
       } catch (error) {
         if (import.meta.env.DEV) console.error('[Firestore] delete profile failed', (error as { code?: string }).code, (error as Error).message);
         push('Unable to delete profile', 'error');
-      } finally {
-        setLoading(false);
       }
     },
     [provider, push, onChange],
@@ -83,7 +78,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
 
   const duplicate = useCallback(
     async (id: string) => {
-      setLoading(true);
       try {
         const copy = await provider.duplicateProfile(id);
         if (copy) setProfiles((items) => [...items, copy].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt - b.createdAt));
@@ -94,8 +88,6 @@ export function useProfiles(onChange?: () => void, refreshKey?: number) {
         if (import.meta.env.DEV) console.error('[Firestore] duplicate profile failed', (error as { code?: string }).code, (error as Error).message);
         push('Unable to duplicate profile', 'error');
         return null;
-      } finally {
-        setLoading(false);
       }
     },
     [provider, push, onChange],

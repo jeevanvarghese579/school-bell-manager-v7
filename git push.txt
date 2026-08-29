@@ -1,2 +1,1 @@
-
-git add . && git commit -m "Fix bell scheduling and playback" && git push
+npm run build && firebase deploy && git add . && git commit -m "Fix profile alarm deletion loading" && git push
