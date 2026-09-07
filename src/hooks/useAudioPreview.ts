@@ -8,8 +8,13 @@ export function useAudioPreview() {
     if (playingId === id) return stop();
     stop(); const url = await getUrl(id); if (!url) return;
     const player = audio.current ?? (audio.current = new Audio());
-    player.src = url; player.onended = () => setPlayingId(null); player.onerror = () => setPlayingId(null);
-    await player.play(); setPlayingId(id);
+    player.src = url;
+    player.onended = () => setPlayingId(null);
+    // A decoding/loading failure can occur after play() resolves on mobile.
+    // Clear the playing state rather than leaving the preview button stuck.
+    player.onerror = () => setPlayingId(null);
+    await player.play();
+    setPlayingId(id);
   }, [playingId, stop]);
   useEffect(() => stop, [stop]);
   return { playingId, toggle, stop };

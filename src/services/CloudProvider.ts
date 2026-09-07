@@ -5,6 +5,7 @@ import { firebaseAuth, firestore, storage } from '@/firebase/firebase';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocFromCache, getDocs, getDocsFromCache, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { idb } from '@/storage/indexeddb';
+import { isElectron } from '@/electron/electronBridge';
 
 const userId = () => {
   const uid = firebaseAuth?.currentUser?.uid;
@@ -62,7 +63,34 @@ export class CloudProvider implements DataProvider {
   async addSound(name: string, file: File) { const uid = userId(); const sound = doc(this.sounds()); const path = `users/${uid}/sounds/${sound.id}/${file.name}`; await uploadBytes(ref(storage!, path), file, { contentType: file.type || 'audio/mpeg' }); await setDoc(sound, { name, storagePath: path, mimeType: file.type || 'audio/mpeg', size: file.size, createdAt: serverTimestamp() }); await idb.putSoundBlob(sound.id, file); const d = await getDoc(sound); return soundFrom(sound.id, d.data()); }
   async updateSound(id: string, name: string) { await updateDoc(doc(this.sounds(), id), { name }); }
   async deleteSound(id: string) { const d = await getDoc(doc(this.sounds(), id)); if (d.exists()) { await deleteObject(ref(storage!, d.data().storagePath)); await deleteDoc(d.ref); } await idb.deleteSoundBlob(id); }
-  async getSoundUrl(id: string) { const cached = await idb.getSoundBlob(id); if (cached) return URL.createObjectURL(cached); const d = await getDoc(doc(this.sounds(), id)); if (!d.exists()) return null; const url = await getDownloadURL(ref(storage!, d.data().storagePath)); try { const blob = await (await fetch(url)).blob(); await idb.putSoundBlob(id, blob); return URL.createObjectURL(blob); } catch { return url; } }
+  async getSoundUrl(id: string) {
+    const cached = await idb.getSoundBlob(id);
+    // Older web builds cached failed Firebase Storage responses (usually JSON)
+    // as a Blob. Do not try to play those error payloads on phones.
+    if (cached?.size && (cached.type === '' || cached.type.startsWith('audio/'))) {
+      return URL.createObjectURL(cached);
+    }
+    if (cached) await idb.deleteSoundBlob(id);
+
+    const d = await getDoc(doc(this.sounds(), id));
+    if (!d.exists()) return null;
+    const url = await getDownloadURL(ref(storage!, d.data().storagePath));
+
+    // Mobile browsers are most reliable when <audio> reads Firebase Storage's
+    // signed URL directly. Keep the Electron cache behavior unchanged.
+    if (!isElectron()) return url;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return url;
+      const blob = await response.blob();
+      if (!blob.size || (blob.type && !blob.type.startsWith('audio/'))) return url;
+      await idb.putSoundBlob(id, blob);
+      return URL.createObjectURL(blob);
+    } catch {
+      return url;
+    }
+  }
   async getSettings() { const uid = userId(); const target = doc(firestore!, 'users', uid, 'settings', 'app'); const d = offline() ? await getDocFromCache(target) : await getDoc(target); return d.exists() ? { ...DEFAULT_SETTINGS, ...d.data() } as AppSettings : DEFAULT_SETTINGS; }
   async updateSettings(patch: Partial<AppSettings>) { const uid = userId(); await setDoc(doc(firestore!, 'users', uid, 'settings', 'app'), { ...patch, updatedAt: serverTimestamp() }, { merge: true }); }
 }
