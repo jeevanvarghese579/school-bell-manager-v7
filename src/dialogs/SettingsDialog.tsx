@@ -119,7 +119,7 @@ export function SettingsDialog({ open, onClose, settings, onUpdateSettings, onOp
         {/* About */}
         <Section icon={<Info size={15} />} title="About">
           <div className="text-sm text-[var(--c-textPrimary)]">School Bell Manager</div>
-          <div className="text-xs text-[var(--c-textSecondary)]">Version 7.0.0</div>
+          <div className="text-xs text-[var(--c-textSecondary)]">Version 7.0.2</div>
           <div className="text-xs text-[var(--c-textSecondary)] mt-1">Developed by: Jeevan Varghese</div>
           <div className="text-xs text-[var(--c-textSecondary)]">Visit <a href="https://itsjeevanvarghese.web.app" target="_blank" rel="noopener noreferrer" onClick={(e) => { if (isElectron()) { e.preventDefault(); getElectron()?.openExternal('https://itsjeevanvarghese.web.app'); } }} className="text-[var(--c-primary)] underline hover:opacity-80">itsjeevanvarghese.web.app</a> for more softwares</div>
         </Section>

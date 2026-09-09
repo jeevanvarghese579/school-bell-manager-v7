@@ -118,6 +118,6 @@ This builds the Vite app and packages it with `electron-builder` into a Windows 
 
 ## About
 
-School Bell Manager — Version 7.0.0
+School Bell Manager — Version 7.0.2
 Developed by: Jeevan Varghese
 Visit `itsjeevanvarghese.web.app` for more softwares.
