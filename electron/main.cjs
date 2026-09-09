@@ -13,6 +13,13 @@ let autoLauncher = null;
 
 const isDev = !app.isPackaged;
 
+function getAutoLaunchExecutablePath() {
+  // electron-builder's portable target runs the packaged app from a temporary
+  // extraction directory. That directory is removed after exit, so registering
+  // process.execPath would leave Windows with a dead startup entry.
+  return process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+}
+
 // Persistent schedule state
 let schedule = {
   bells: [], // { id, name, time, repeatDays, enabled, profileEnabled, soundId }
@@ -286,11 +293,15 @@ function playAudioFile(filePath) {
 }
 
 // IPC handlers
-ipcMain.handle('set-auto-launch', (e, enabled) => {
-  if (!autoLauncher) return;
-  return autoLauncher[enabled ? 'enable' : 'disable']().catch((err) => {
+ipcMain.handle('set-auto-launch', async (_event, enabled) => {
+  if (!autoLauncher) throw new Error('Auto-launch is not initialized.');
+  try {
+    await autoLauncher[enabled ? 'enable' : 'disable']();
+    saveSettings({ launchOnStartup: Boolean(enabled) });
+  } catch (err) {
     console.error('Auto-launch error:', err);
-  });
+    throw err;
+  }
 });
 
 ipcMain.on('minimize-to-tray', () => mainWindow?.hide());
@@ -338,6 +349,20 @@ ipcMain.on('play-sound-file-response', (e, { success, error }) => {
 app.whenReady().then(() => {
   loadSettings();
   ensureSoundCache();
+
+  // Set this up before the renderer is allowed to request a settings change.
+  // That removes a startup race where the first IPC request could arrive while
+  // autoLauncher was still null.
+  autoLauncher = new AutoLaunch({
+    name: 'School Bell Manager',
+    path: getAutoLaunchExecutablePath(),
+  });
+
+  // Restore the saved startup preference even if the renderer is never shown.
+  if (settingsStore.launchOnStartup) {
+    autoLauncher.enable().catch((err) => console.error('Auto-launch startup restore error:', err));
+  }
+
   createWindow();
 
   // Create tray icon
@@ -347,14 +372,6 @@ app.whenReady().then(() => {
   updateTray();
   tray.on('click', () => mainWindow?.show());
   tray.on('double-click', () => mainWindow?.show());
-
-  // Auto-launch
-  autoLauncher = new AutoLaunch({ name: 'School Bell Manager' });
-
-  // Apply startup setting
-  if (settingsStore.launchOnStartup) {
-    autoLauncher.enable().catch(() => {});
-  }
 
   // Check every second so an HH:mm alarm rings close to second zero rather
   // than as much as 15 seconds late.
